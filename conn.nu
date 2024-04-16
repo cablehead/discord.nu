@@ -33,6 +33,18 @@ def flatten-params [params] {
     } | flatten
 }
 
+def "main watch" [] {
+    loop {
+      let params = ( try { open last_id } | and-then {{"--last-id": $in}})
+      xs cat  ...(flatten-params $params) |  each {
+          let r = $in
+          $r.id | save -f last_id
+          print ($r | table --expand)
+      }
+      sleep 1sec
+    }
+}
+
 def main [...args] {
     print "start"
 
