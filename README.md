@@ -1,4 +1,4 @@
 
-## disord.nu
+## discord.nu
 
 discord + nushell + a happy dance
