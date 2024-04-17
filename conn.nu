@@ -53,6 +53,16 @@ def "main watch" [] {
     }
 }
 
+
+def "scru128-since" [$id1, $id2] {
+
+    let t1 = ($id1 | scru128 parse | into int)
+    let t2 = ($id2 | scru128 parse | into int)
+
+    return ($t1 - $t2)
+
+}
+
 def "main heartbeat" [path] {
 
 mut state = ( try { open $path } | ? else { { 
@@ -67,8 +77,16 @@ mut state = ( try { open $path } | ? else { {
       let params = (flatten-params {"--last-id": $state.last_id})
 
         let event = (xs cat ...$params | ? else { 
-            print "noop" 
-            return
+
+            [ {
+                id: (scru128), 
+                data: {
+                    op: -1,
+                },
+
+            }
+            ]
+
         } | first)
 
         print ($state | table -e)
@@ -77,9 +95,20 @@ mut state = ( try { open $path } | ? else { {
 
 
         match $event.data.op {
+            -1 => {
+
+let since = (scru128-since $event.id $state.last_sent)
+
+let interval =  (($state.heartbeat_interval / 1000) * 0.9)
+
+print ($since > $interval) # emit
+                
+                return
+            }
     10 => {
             $state.heartbeat_interval = $event.data.d.heartbeat_interval
             $state.last_ack = $event.id
+            $state.last_sent = $event.id
     },
     _ => {
         print "TODO"
