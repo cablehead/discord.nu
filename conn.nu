@@ -112,8 +112,10 @@ def "main heartbeat" [path] {
         heartbeat_interval: 0, # 0 means we are offline
         last_sent: null,
         last_ack: null,
-        authed: false,
-        authing: false,
+
+        authing: null,
+        session_id: null,
+        resume_gateway_url: null,
     } })
 
     let params = (flatten-params {"--last-id": $state.last_id})
@@ -132,7 +134,7 @@ def "main heartbeat" [path] {
     match $event.data {
         {op: -1} => {
             # if we're online, but not authed, attempt to auth
-            if (($state.heartbeat_interval != 0) and (not $state.authing)) {
+            if (($state.heartbeat_interval != 0) and ($state.authing | is-empty)) {
                 if ($state.session_id | is-not-empty) {
                     print "sending resume!"
                     op resume $env.BOT_TOKEN $state.session_id $state.s | to json -r | xs ./ws put --topic ws.send
@@ -140,61 +142,81 @@ def "main heartbeat" [path] {
                     print "sending identify!"
                     op identify $env.BOT_TOKEN 33281 | to json -r | xs ./ws put --topic ws.send
                 }
-            }
+            } else {
+                # if we're offline, or an ack is pending, do nothing
+                if (($state.heartbeat_interval == 0) or ($state.last_ack | is-empty)) {
+                    return
+                }
 
-            # if we're offline, or an ack is pending, do nothing
-            if (($state.heartbeat_interval == 0) or ($state.last_ack | is-empty)) {
-                return
-            }
-
-            let since = (scru128-since $event.id $state.last_sent)
-            let interval =  (($state.heartbeat_interval / 1000) * 0.9)
-            if ($since > $interval) {
-                print "sending heartbeat!"
-                op heartbeat $state.s | to json -r | xs ./ws put --topic ws.send
+                let since = (scru128-since $event.id $state.last_sent)
+                let interval =  (($state.heartbeat_interval / 1000) * 0.9)
+                if ($since > $interval) {
+                    print "sending heartbeat!"
+                    op heartbeat $state.s | to json -r | xs ./ws put --topic ws.send
+                }
             }
             # this is a virtual event, so exit early to avoid updating last_id
             return
         }
 
-        {op: ($opcode.identify)} => {
-            $state.authing = true
+        # identify
+        {op: 2} => {
+            $state.authing = "identify"
         }
 
-        {op: ($opcode.resume)} => {
-            $state.authing = true
+        # resume
+        {op: 6} => {
+            $state.authing = "resume"
         }
 
-        {op: ($opcode | get hello)} => {
+        # hello
+        {op: 10} => {
             $state.heartbeat_interval = $event.data.d.heartbeat_interval
             $state.last_ack = $event.id
             $state.last_sent = $event.id
+            $state.authing = null
         },
 
-        {op: ($opcode.heartbeat)} => {
+        # heartbeat
+        {op: 1} => {
             $state.last_ack = null
             $state.last_sent = $event.id
         },
 
-        {op: ($opcode.heartbeat_ack)} => {
+        # heartbeat_ack
+        {op: 11} => {
             $state.last_ack = $event.id
         },
 
-        {op: ($opcode.dispatch), t: "READY"} => {
+        # dispatch
+        {op: 0, t: "READY"} => {
             $state.session_id = $event.data.d.session_id
             $state.resume_gateway_url = $event.data.d.resume_gateway_url
         }
 
-        {op: ($opcode.dispatch), t: "GUILD_CREATE"} => {
+        # dispatch
+        {op: 0, t: "GUILD_CREATE"} => {}
+
+        # dispatch
+        {op: 0, t: "MESSAGE_CREATE"} => {
+            print "MESSAGE_CREATE!, TODO"
         }
 
-        {op: ($opcode.dispatch)} => {
-            print $"TODO: 0, unknown t: ($event.data.d.t)"
+        # dispatch
+        {op: 0} => {
+            print $"TODO: 0, unknown t: ($event.data.t)"
             return
         }
 
-        {op: ($opcode.invalid_session)} => {
-            $state.authing = false
+        # invalid_session
+        {op: 9} => {
+            # if we get an invalid session while trying to resume, also clear
+            # out the session
+            if $state.authing == "resume" {
+                $state.resume_gateway_url = null
+                $state.session_id = null
+            }
+            $state.authing = null
         }
 
         _ => {
