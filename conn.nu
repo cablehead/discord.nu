@@ -12,6 +12,13 @@ alias ?? = ? else { return }
 # : if false { {foo: "goo"} } | ? else { {foo: "bar"} } | get foo
 # bar
 
+def "op heartbeat" [seqno?: int] {
+    {
+        "op": 1,
+        "d": $seqno,
+    }
+}
+
 let origin = "wss://gateway.discord.gg"
 # let origin = "ws://127.0.0.1:1234"
 
@@ -67,7 +74,7 @@ def "main heartbeat" [path] {
 
 mut state = ( try { open $path } | ? else { { 
         last_id: null,
-        s: 0,
+        s: null,
         heartbeat_interval: 0, # 0 means we are offline
         last_sent: ""
         last_ack: ""
@@ -101,7 +108,11 @@ let since = (scru128-since $event.id $state.last_sent)
 
 let interval =  (($state.heartbeat_interval / 1000) * 0.9)
 
-print ($since > $interval) # emit
+if ($since > $interval) {
+
+    print (op heartbeat $state.s)
+
+}
                 
                 return
             }

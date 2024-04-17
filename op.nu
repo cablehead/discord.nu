@@ -9,12 +9,6 @@
 # The inner d key is the last sequence number—s—received by the client. If you
 # have not yet received one, send null.
 
-export def heartbeat [seqno?: int] {
-    {
-        "op": 1,
-        "d": $seqno,
-    }
-}
 
 # 2	Identify
 
