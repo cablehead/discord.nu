@@ -12,10 +12,49 @@ alias ?? = ? else { return }
 # : if false { {foo: "goo"} } | ? else { {foo: "bar"} } | get foo
 # bar
 
+const opcode = {
+    dispatch: 0,
+    heartbeat: 1,
+    identify: 2,
+    presence_update: 3,
+    voice_update: 4,
+    resume: 6,
+    reconnect: 7,
+    invalid_session: 9,
+    hello: 10,
+    heartbeat_ack: 11,
+}
+
 def "op heartbeat" [seqno?: int] {
     {
-        "op": 1,
+        "op": $opcode.heartbeat,
         "d": $seqno,
+    }
+}
+
+def "op identify" [token: string, intents: int] {
+    {
+        "op": $opcode.identify,
+        "d": {
+            token: $token,
+            intents: $intents,
+            properties: {
+                os: (sys | get host.name),
+                browser: "discord.nu",
+                device: "discord.nu",
+            },
+        },
+    }
+}
+
+def "op resume" [token: string, session_id: string, seq: int] {
+    {
+        "op": $opcode.resume,
+        "d": {
+            token: $token,
+            session_id: $session_id,
+            seq: $seq,
+        },
     }
 }
 
@@ -73,6 +112,8 @@ def "main heartbeat" [path] {
         heartbeat_interval: 0, # 0 means we are offline
         last_sent: null,
         last_ack: null,
+        authed: false,
+        authing: false,
     } })
 
     let params = (flatten-params {"--last-id": $state.last_id})
@@ -88,21 +129,73 @@ def "main heartbeat" [path] {
     print ($state | table -e)
     print ($event | table -e)
 
-    match $event.data.op {
-        -1 => {
+    match $event.data {
+        {op: -1} => {
+            # if we're online, but not authed, attempt to auth
+            if (($state.heartbeat_interval != 0) and (not $state.authing)) {
+                if ($state.session_id | is-not-empty) {
+                    print "sending resume!"
+                    op resume $env.BOT_TOKEN $state.session_id $state.s | to json -r | xs ./ws put --topic ws.send
+                } else {
+                    print "sending identify!"
+                    op identify $env.BOT_TOKEN 33281 | to json -r | xs ./ws put --topic ws.send
+                }
+            }
+
+            # if we're offline, or an ack is pending, do nothing
+            if (($state.heartbeat_interval == 0) or ($state.last_ack | is-empty)) {
+                return
+            }
+
             let since = (scru128-since $event.id $state.last_sent)
             let interval =  (($state.heartbeat_interval / 1000) * 0.9)
             if ($since > $interval) {
+                print "sending heartbeat!"
                 op heartbeat $state.s | to json -r | xs ./ws put --topic ws.send
             }
+            # this is a virtual event, so exit early to avoid updating last_id
             return
         }
 
-        10 => {
+        {op: ($opcode.identify)} => {
+            $state.authing = true
+        }
+
+        {op: ($opcode.resume)} => {
+            $state.authing = true
+        }
+
+        {op: ($opcode | get hello)} => {
             $state.heartbeat_interval = $event.data.d.heartbeat_interval
             $state.last_ack = $event.id
             $state.last_sent = $event.id
         },
+
+        {op: ($opcode.heartbeat)} => {
+            $state.last_ack = null
+            $state.last_sent = $event.id
+        },
+
+        {op: ($opcode.heartbeat_ack)} => {
+            $state.last_ack = $event.id
+        },
+
+        {op: ($opcode.dispatch), t: "READY"} => {
+            $state.session_id = $event.data.d.session_id
+            $state.resume_gateway_url = $event.data.d.resume_gateway_url
+        }
+
+        {op: ($opcode.dispatch), t: "GUILD_CREATE"} => {
+        }
+
+        {op: ($opcode.dispatch)} => {
+            print $"TODO: 0, unknown t: ($event.data.d.t)"
+            return
+        }
+
+        {op: ($opcode.invalid_session)} => {
+            $state.authing = false
+        }
 
         _ => {
             print "TODO"
@@ -110,8 +203,13 @@ def "main heartbeat" [path] {
         }
     }
 
-    print ($state | table -e)
+    if (($event.data.op == $opcode.dispatch) and ($event.data.s | is-not-empty)) {
+        $state.s = $event.data.s
+    }
+
     $state.last_id = $event.id
+
+    print ($state | table -e)
     $state | save -f $path
 }
 
