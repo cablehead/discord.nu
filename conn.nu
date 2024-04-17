@@ -60,100 +60,59 @@ def "main watch" [] {
     }
 }
 
-
 def "scru128-since" [$id1, $id2] {
-
     let t1 = ($id1 | scru128 parse | into int)
     let t2 = ($id2 | scru128 parse | into int)
-
     return ($t1 - $t2)
-
 }
 
 def "main heartbeat" [path] {
-
-mut state = ( try { open $path } | ? else { { 
+    mut state = (try { open $path } | ? else { { 
         last_id: null,
         s: null,
         heartbeat_interval: 0, # 0 means we are offline
         last_sent: null,
         last_ack: null,
-    } }
-    )
+    } })
 
-      let params = (flatten-params {"--last-id": $state.last_id})
-
-        let event = (xs cat ...$params | ? else { 
-
-            [ {
+    let params = (flatten-params {"--last-id": $state.last_id})
+    let event = (xs cat ...$params | ? else { 
+            [{
                 id: (scru128), 
                 data: {
                     op: -1,
                 },
-
-            }
-            ]
-
+            }]
         } | first)
 
-        print ($state | table -e)
+    print ($state | table -e)
+    print ($event | table -e)
 
-        print ($event | table -e)
-
-
-        match $event.data.op {
-            -1 => {
-
-let since = (scru128-since $event.id $state.last_sent)
-
-let interval =  (($state.heartbeat_interval / 1000) * 0.9)
-
-if ($since > $interval) {
-
-    op heartbeat $state.s | to json -r | xs ./ws put --topic ws.send
-
-}
-                
-                return
+    match $event.data.op {
+        -1 => {
+            let since = (scru128-since $event.id $state.last_sent)
+            let interval =  (($state.heartbeat_interval / 1000) * 0.9)
+            if ($since > $interval) {
+                op heartbeat $state.s | to json -r | xs ./ws put --topic ws.send
             }
-    10 => {
+            return
+        }
+
+        10 => {
             $state.heartbeat_interval = $event.data.d.heartbeat_interval
             $state.last_ack = $event.id
             $state.last_sent = $event.id
-    },
-    _ => {
-        print "TODO"
-        return
+        },
+
+        _ => {
+            print "TODO"
+            return
+        }
     }
-}
 
-
-
-
-        print ($state | table -e)
-        
-
+    print ($state | table -e)
     $state.last_id = $event.id
-
     $state | save -f $path
-
-
-return
-
-
-      # let params = ( try { open last_id } | and-then {{"--last-id": $in}})
-      let params = {}
-      xs cat  ...
-      # (flatten-params {"--last-id") |  each {
-          let r = $in
-
-          $r | save goo.json
-          return
-
-
-          print $"s: ($r.data.s | describe)"
-          # $r.id | save -f last_id
-          # print ($r | table --expand)
 }
 
 def "main connect" [] {
