@@ -118,6 +118,8 @@ def "main heartbeat" [path] {
         resume_gateway_url: null,
     } })
 
+    let previous = $state
+
     let params = (flatten-params {"--last-id": $state.last_id})
     let event = (xs cat ...$params | ? else { 
             [{
@@ -128,8 +130,6 @@ def "main heartbeat" [path] {
             }]
         } | first)
 
-    print ($state | table -e)
-    print ($event | table -e)
 
     match $event.data {
         {op: -1} => {
@@ -202,6 +202,10 @@ def "main heartbeat" [path] {
             print "MESSAGE_CREATE!, TODO"
         }
 
+        {op: 0, t: "MESSAGE_UPDATE"} => {
+            print "MESSAGE_UPDATE!, TODO"
+        }
+
         # dispatch
         {op: 0} => {
             print $"TODO: 0, unknown t: ($event.data.t)"
@@ -230,9 +234,11 @@ def "main heartbeat" [path] {
     }
 
     $state.last_id = $event.id
-
-    print ($state | table -e)
     $state | save -f $path
+
+    print ($previous | table -e)
+    print ($event | table -e)
+    print ($state | table -e)
 }
 
 def "main connect" [] {
