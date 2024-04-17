@@ -63,35 +63,37 @@ mut state = ( try { open $path } | ? else { {
         last_ack: ""
     } }
     )
-print "hi"
 
-print ($state | describe)
-     
       let params = (flatten-params {"--last-id": $state.last_id})
 
-        let event = (xs cat ...$params | first)
+        let event = (xs cat ...$params | ? else { 
+            print "noop" 
+            return
+        } | first)
 
         print ($state | table -e)
 
         print ($event | table -e)
 
-        let data = $event.data
 
-        print 222
-
-        print (match $data.op {
+        match $event.data.op {
     10 => {
-            $state.heartbeat_interval = $data.d.heartbeat_interval
+            $state.heartbeat_interval = $event.data.d.heartbeat_interval
+            $state.last_ack = $event.id
     },
-    _ => (print 'other')
-})
+    _ => {
+        print "TODO"
+        return
+    }
+}
 
 
 
 
+        print ($state | table -e)
         
 
-    # $state.last_id = $event.id
+    $state.last_id = $event.id
 
     $state | save -f $path
 
