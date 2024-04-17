@@ -133,6 +133,7 @@ def "main heartbeat" [path] {
 
     match $event.data {
         {op: -1} => {
+            print "."
             # if we're online, but not authed, attempt to auth
             if (($state.heartbeat_interval != 0) and ($state.authing | is-empty)) {
                 if ($state.session_id | is-not-empty) {
@@ -192,6 +193,11 @@ def "main heartbeat" [path] {
         {op: 0, t: "READY"} => {
             $state.session_id = $event.data.d.session_id
             $state.resume_gateway_url = $event.data.d.resume_gateway_url
+            $state.authing = "authed"
+        }
+
+        {op: 0, t: "RESUMED"} => {
+            $state.authing = "authed"
         }
 
         # dispatch
@@ -208,6 +214,7 @@ def "main heartbeat" [path] {
 
         # dispatch
         {op: 0} => {
+            print ($event | table -e)
             print $"TODO: 0, unknown t: ($event.data.t)"
             return
         }
