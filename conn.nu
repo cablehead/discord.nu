@@ -76,8 +76,8 @@ mut state = ( try { open $path } | ? else { {
         last_id: null,
         s: null,
         heartbeat_interval: 0, # 0 means we are offline
-        last_sent: ""
-        last_ack: ""
+        last_sent: null,
+        last_ack: null,
     } }
     )
 
@@ -110,7 +110,7 @@ let interval =  (($state.heartbeat_interval / 1000) * 0.9)
 
 if ($since > $interval) {
 
-    print (op heartbeat $state.s)
+    op heartbeat $state.s | to json -r | xs ./ws put --topic ws.send
 
 }
                 
