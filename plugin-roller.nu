@@ -92,7 +92,6 @@ def main [path] {
         } | get 0?
         )
 
-
     if ($event | is-empty) {
         return 
     }
@@ -103,13 +102,11 @@ def main [path] {
 
     $message.content | parse-roller | and-then {
         let req = $in
-
-    {
-        content: ($req | roll),
-        message_reference: { message_id: $message.id },
+        {
+            content: ($req | roll),
+            message_reference: { message_id: $message.id },
         } | send-message $message.channel_id
     }
 
     {last_id: $event.id } | save -f $path
-
 }
