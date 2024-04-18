@@ -10,7 +10,6 @@ def map-values [closure: closure] {
     transpose  | each { update column1 { do $closure } } | transpose --header-row -d
 }
 
-
 export def run-roller [] {
     let last_id = (xs-get-last "plugin.roller.last" | and-then { ["--last-id", $in.id] } | map-empty {[]})
     let actions = (
