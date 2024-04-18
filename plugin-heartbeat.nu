@@ -55,7 +55,7 @@ def main [path, heart_path] {
         let event = $in
         let m = $event.data.data.d
         let message = {id: $m.id, channel_id: $m.channel_id, content: $m.content}
-        $message | plugin $heart_path | cat
+        $message | plugin $heart_path
         {last_id: $event.id } | save -f $path
     }
 }
