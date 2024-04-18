@@ -105,6 +105,16 @@ def "scru128-since" [$id1, $id2] {
     return ($t1 - $t2)
 }
 
+# takes:
+# - state
+# - event
+# emits:
+# - log entry
+# - event -> ws.send
+# - event -> store
+# - event -> todo
+# - updated state
+
 def "main heartbeat" [path] {
     mut state = (try { open $path } | ? else { { 
         last_id: null,
@@ -132,6 +142,7 @@ def "main heartbeat" [path] {
 
 
     match $event.data {
+        # pulse
         {op: -1} => {
             print "."
             # if we're online, but not authed, attempt to auth
@@ -201,22 +212,8 @@ def "main heartbeat" [path] {
         }
 
         # dispatch
-        {op: 0, t: "GUILD_CREATE"} => {}
-
-        # dispatch
-        {op: 0, t: "MESSAGE_CREATE"} => {
-            print "MESSAGE_CREATE!, TODO"
-        }
-
-        {op: 0, t: "MESSAGE_UPDATE"} => {
-            print "MESSAGE_UPDATE!, TODO"
-        }
-
-        # dispatch
         {op: 0} => {
-            print ($event | table -e)
-            print $"TODO: 0, unknown t: ($event.data.t)"
-            return
+            $event | to json -r | xs ./discord put --topic "dispatch"
         }
 
         # invalid_session
@@ -231,8 +228,7 @@ def "main heartbeat" [path] {
         }
 
         _ => {
-            print "TODO"
-            return
+            $event | to json -r | xs ./discord put --topic "todo"
         }
     }
 
