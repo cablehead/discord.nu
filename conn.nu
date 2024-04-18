@@ -25,10 +25,10 @@ const opcode = {
     heartbeat_ack: 11,
 }
 
-def "op heartbeat" [seqno?: int] {
+def "op heartbeat" [seq?: int] {
     {
         "op": $opcode.heartbeat,
-        "d": $seqno,
+        "d": $seq,
     }
 }
 
@@ -236,6 +236,7 @@ def "main heartbeat" [path] {
         }
     }
 
+    # * s and t are null when op is not 0
     if (($event.data.op == $opcode.dispatch) and ($event.data.s | is-not-empty)) {
         $state.s = $event.data.s
     }
