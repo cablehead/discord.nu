@@ -13,6 +13,7 @@ def build-query [params] {
 }
 
 def cat [
+    store: string
     args
 ] {
     mut params = {follow: false, tail: false}
@@ -31,7 +32,9 @@ def cat [
         }
         $i = $i + 1
     }
-    print (build-query $params)
+    let query = (build-query $params)
+    let url = $"localhost/($query)"
+    curl -sN --unix-socket $"($store)/sock" $url | lines | each { from json }
 }
 
 
@@ -41,7 +44,7 @@ export def --wrapped main [
     ...rest
 ] {
     match $command {
-        "cat" => { cat $rest }
+        "cat" => { cat $store $rest }
         _ => { print $"unknown command: ($command)" }
     }
 }
