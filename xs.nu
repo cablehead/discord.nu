@@ -15,7 +15,7 @@ def build-query [params] {
 def cat [
     args
 ] {
-    mut params = {follow: false}
+    mut params = {follow: false, tail: false}
     mut i = 0
     while $i < ($args | length) {
         let arg = ($args | get $i)
@@ -25,6 +25,7 @@ def cat [
                 $params.last_id = ($args | get $i)
             }
             "--follow" => { $params.follow = true }
+            "--tail" => { $params.tail = true }
         _ => { print $"unknown argument: ($arg)"; return }
 
         }
