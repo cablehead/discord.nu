@@ -12,62 +12,35 @@ def build-query [params] {
     } | and-then { $"?($in | str join "&")" }
 }
 
-def flatten-params [params] {
-    $params | columns | each {|name|
-        $params | get $name | and-then {
-            let value = $in
-            if $value == true {
-                [$name]
-            } else {
-                [$name, $value]
+def cat [
+    args
+] {
+    mut params = {follow: false}
+    mut i = 0
+    while $i < ($args | length) {
+        let arg = ($args | get $i)
+        match $arg {
+            "--last-id" => { 
+                $i = $i + 1 
+                $params.last_id = ($args | get $i)
             }
+            "--follow" => { $params.follow = true }
+        _ => { print $"unknown argument: ($arg)"; return }
 
         }
-    } | flatten
+        $i = $i + 1
+    }
+    print (build-query $params)
 }
 
-export def cat [
-    store: string
-    --last-id: any
-    --follow
-    --tail
-] {
-    let path = "/"
-    let query = ( build-query { "last-id": $last_id, follow: $follow, tail: $tail } )
-    let url = $"localhost($path)($query)"
-    curl -sN --unix-socket $"($store)/sock" $url | lines | each { from json }
-}
 
-export def process [
+export def --wrapped main [
     store: string
-    callback: closure
+    command: string
+    ...rest
 ] {
-    each {|meta| cas $store $meta.hash | do $callback $meta}
-}
-
-export def stream-get [
-    store: string
-    id: string
-] {
-    let url = $"localhost/($id)"
-    curl -sN --unix-socket $"($store)/sock" $url | from json
-}
-
-export def append [
-    store: string
-    topic: string
-    --meta: record
-] {
-    curl -s -T - -X POST ...(
-        $meta | and-then {
-            ["-H" $"xs-meta: ($meta | to json -r)"]
-        } | default []
-    ) --unix-socket $"($store)/sock" $"localhost(if ($topic | str starts-with '/') { $topic } else { $"/($topic)" })"
-}
-
-export def cas [
-    store: string
-    hash: string
-] {
-    curl -sN --unix-socket $"($store)/sock" $"localhost/cas/($hash)"
+    match $command {
+        "cat" => { cat $rest }
+        _ => { print $"unknown command: ($command)" }
+    }
 }
