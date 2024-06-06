@@ -12,39 +12,62 @@ def build-query [params] {
     } | and-then { $"?($in | str join "&")" }
 }
 
-def cat [
-    store: string
-    args
-] {
-    mut params = {follow: false, tail: false}
-    mut i = 0
-    while $i < ($args | length) {
-        let arg = ($args | get $i)
-        match $arg {
-            "--last-id" => { 
-                $i = $i + 1 
-                $params.last_id = ($args | get $i)
+def flatten-params [params] {
+    $params | columns | each {|name|
+        $params | get $name | and-then {
+            let value = $in
+            if $value == true {
+                [$name]
+            } else {
+                [$name, $value]
             }
-            "--follow" => { $params.follow = true }
-            "--tail" => { $params.tail = true }
-        _ => { print $"unknown argument: ($arg)"; return }
 
         }
-        $i = $i + 1
-    }
-    let query = (build-query $params)
-    let url = $"localhost/($query)"
+    } | flatten
+}
+
+export def cat [
+    store: string
+    --last-id: any
+    --follow
+    --tail
+] {
+    let path = "/"
+    let query = ( build-query { "last-id": $last_id, follow: $follow, tail: $tail } )
+    let url = $"localhost($path)($query)"
     curl -sN --unix-socket $"($store)/sock" $url | lines | each { from json }
 }
 
-
-export def --wrapped main [
+export def process [
     store: string
-    command: string
-    ...rest
+    callback: closure
 ] {
-    match $command {
-        "cat" => { cat $store $rest }
-        _ => { print $"unknown command: ($command)" }
-    }
+    each {|meta| cas $store $meta.hash | do $callback $meta}
+}
+
+export def stream-get [
+    store: string
+    id: string
+] {
+    let url = $"localhost/($id)"
+    curl -sN --unix-socket $"($store)/sock" $url | from json
+}
+
+export def append [
+    store: string
+    topic: string
+    --meta: record
+] {
+    curl -s -T - -X POST ...(
+        $meta | and-then {
+            ["-H" $"xs-meta: ($meta | to json -r)"]
+        } | default []
+    ) --unix-socket $"($store)/sock" $"localhost(if ($topic | str starts-with '/') { $topic } else { $"/($topic)" })"
+}
+
+export def cas [
+    store: string
+    hash: string
+] {
+    curl -sN --unix-socket $"($store)/sock" $"localhost/cas/($hash)"
 }
