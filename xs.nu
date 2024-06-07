@@ -12,20 +12,6 @@ def build-query [params] {
     } | and-then { $"?($in | str join "&")" }
 }
 
-def flatten-params [params] {
-    $params | columns | each {|name|
-        $params | get $name | and-then {
-            let value = $in
-            if $value == true {
-                [$name]
-            } else {
-                [$name, $value]
-            }
-
-        }
-    } | flatten
-}
-
 export def cat [
     store: string
     --last-id: any
