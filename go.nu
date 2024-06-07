@@ -14,11 +14,15 @@ let path = "./state.nuon"
 let state = try { open $path } catch { {last_id: null, app: {}} }
 print ($state | table -e)
 
-let clip = xs cat ./store/ --last-id=$state.last_id
-    | first
-    | insert data { |row| xs cas ./store $row.hash | from json }
+let clip = xs cat ./store/ --last-id=$state.last_id | if ($in | is-not-empty) {
+    first | insert data { |row| xs cas ./store $row.hash | from json }
+} else { {id: (scru128)} }
 
+
+print ($clip | describe)
 print ($clip | table -e)
 
-discord heartbeat run $state.app $clip | {last_id: $clip.id, app: $in} | save -f $path
-print (open $path | table -e)
+discord heartbeat run $state.app $clip | if ($in | is-not-empty) {
+    {last_id: $clip.id, app: $in} | save -f $path
+    print (open $path | table -e)
+}

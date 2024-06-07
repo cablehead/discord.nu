@@ -22,9 +22,19 @@ alias ?? = ? else { return }
 #    resume_gateway_url: null,
 # }
 
-export def run [state: record clip: record] {
-    mut state = $state
+def "scru128-since" [$id1, $id2] {
+    let t1 = ($id1 | scru128 parse | into int)
+    let t2 = ($id2 | scru128 parse | into int)
+    return ($t1 - $t2)
+}
 
+export def run [state: record clip: record] {
+    if ($clip | get data? | is-empty) {
+        print "skip"
+        return
+    }
+
+    mut state = $state
     match $clip.data {
         # hello
         {op: 10} => {
@@ -72,6 +82,33 @@ export def run [state: record clip: record] {
         }
 
         {op: 0, t: "GUILD_CREATE"} => {},
+
+        # pulse
+        {op: -1} => {
+            print "."
+            # if we're online, but not authed, attempt to auth
+            if (($state.heartbeat_interval != 0) and ($state.authing | is-empty)) {
+                if ($state.session_id | is-not-empty) {
+                    print "sending resume!"
+                    op resume $env.BOT_TOKEN $state.session_id $state.s | to json -r | xs ./ws put --topic ws.send
+                } else {
+                    print "sending identify!"
+                    op identify $env.BOT_TOKEN 33281 | to json -r | xs ./ws put --topic ws.send
+                }
+            } else {
+                # if we're offline, or an ack is pending, do nothing
+                if (($state.heartbeat_interval == 0) or ($state.last_ack | is-empty)) {
+                    return
+                }
+
+                let since = (scru128-since $clip.id $state.last_sent)
+                let interval =  (($state.heartbeat_interval / 1000) * 0.9)
+                if ($since > $interval) {
+                    print "sending heartbeat!"
+                    op heartbeat $state.s | to json -r | xs ./ws put --topic ws.send
+                }
+            }
+        }
 
         _ => {
             error make { msg: $"todo ($clip | table -e)" }
