@@ -1,26 +1,4 @@
-alias and-then = if ($in | is-not-empty)
-
-# unfortunately `else` can't be included in the alias
-alias ? = if ($in | is-not-empty) { $in }
-alias ?? = ? else { return }
-
-# `? else` instead of `map-empty`
-# : if true  { {foo: "goo"} } | ? else { {foo: "bar"} } | get foo
-# goo
-# : if false { {foo: "goo"} } | ? else { {foo: "bar"} } | get foo
-# bar
-
-# state: {
-#    last_id: null,
-#    s: null,
-#    heartbeat_interval: 0, # 0 means we are offline
-#    last_sent: null,
-#    last_ack: null,
-#
-#    authing: null,
-#    session_id: null,
-#    resume_gateway_url: null,
-# }
+use op.nu
 
 def "scru128-since" [$id1, $id2] {
     let t1 = ($id1 | scru128 parse | into int)
@@ -28,13 +6,55 @@ def "scru128-since" [$id1, $id2] {
     return ($t1 - $t2)
 }
 
-export def run [state: record clip: record] {
+export def default-state [] {
+    {
+        s: null,
+        heartbeat_interval: 0, # 0 means we are offline
+        last_sent: null,
+        last_ack: null,
+
+        authing: null,
+        session_id: null,
+        resume_gateway_url: null,
+    }
+}
+
+export def run [state: record ws_send: closure clip: record] {
     if ($clip | get data? | is-empty) {
-        print "skip"
+        print "."
+        # if we're online, but not authed, attempt to auth
+        if (($state.heartbeat_interval != 0) and ($state.authing | is-empty)) {
+            if ($state.session_id | is-not-empty) {
+                print "sending resume!"
+                op resume $env.BOT_TOKEN $state.session_id $state.s | do $ws_send
+            } else {
+                print "sending identify!"
+                op identify $env.BOT_TOKEN 33281 | do $ws_send
+            }
+            return
+        }
+
+        # if we're offline, or an ack is pending, do nothing
+        if (($state.heartbeat_interval == 0) or ($state.last_ack | is-empty)) {
+            return
+        }
+
+        let since = (scru128-since $clip.id $state.last_sent)
+        let interval =  (($state.heartbeat_interval / 1000) * 0.9)
+        if ($since > $interval) {
+            print "sending heartbeat!"
+            op heartbeat $state.s | do $ws_send
+        }
         return
     }
 
     mut state = $state
+
+    # * s and t are null when op is not 0
+    if (($clip.data.op == 0) and ($clip.data.s | is-not-empty)) {
+        $state.s = $clip.data.s
+    }
+
     match $clip.data {
         # hello
         {op: 10} => {
@@ -74,6 +94,11 @@ export def run [state: record clip: record] {
             $state.authing = "identify"
         }
 
+        # resume
+        {op: 6} => {
+            $state.authing = "resume"
+        }
+
         # dispatch
         {op: 0, t: "READY"} => {
             $state.session_id = $clip.data.d.session_id
@@ -82,6 +107,7 @@ export def run [state: record clip: record] {
         }
 
         {op: 0, t: "GUILD_CREATE"} => {},
+        {op: 0, t: "MESSAGE_CREATE"} => {},
 
         # pulse
         {op: -1} => {

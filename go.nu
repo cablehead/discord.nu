@@ -9,20 +9,21 @@ alias ?? = ? else { return }
 use xs.nu
 use discord/
 
+let store = "./store"
 let path = "./state.nuon"
 
-let state = try { open $path } catch { {last_id: null, app: {}} }
+let state = try { open $path } catch { {last_id: null, app: (discord heartbeat default-state)} }
 print ($state | table -e)
 
-let clip = xs cat ./store/ --last-id=$state.last_id | if ($in | is-not-empty) {
+let clip = xs cat $store --last-id=$state.last_id | if ($in | is-not-empty) {
     first | insert data { |row| xs cas ./store $row.hash | from json }
 } else { {id: (scru128)} }
 
-
-print ($clip | describe)
 print ($clip | table -e)
 
-discord heartbeat run $state.app $clip | if ($in | is-not-empty) {
+let ws_send = {|| to json -r | xs append $store ws.send}
+
+discord heartbeat run $state.app $ws_send $clip | if ($in | is-not-empty) {
     {last_id: $clip.id, app: $in} | save -f $path
     print (open $path | table -e)
 }
