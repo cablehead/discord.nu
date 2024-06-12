@@ -28,7 +28,7 @@ export def run [state: record ws_send: closure clip: record] {
                 op resume $env.BOT_TOKEN $state.session_id $state.s | do $ws_send
             } else {
                 print "sending identify!"
-                op identify $env.BOT_TOKEN 33281 | do $ws_send
+                op identify $env.BOT_TOKEN 34306 | do $ws_send
             }
             return
         }
