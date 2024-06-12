@@ -21,7 +21,6 @@ export def default-state [] {
 
 export def run [state: record ws_send: closure clip: record] {
     if ($clip | get data? | is-empty) {
-        print "."
         # if we're online, but not authed, attempt to auth
         if (($state.heartbeat_interval != 0) and ($state.authing | is-empty)) {
             if ($state.session_id | is-not-empty) {
@@ -35,7 +34,7 @@ export def run [state: record ws_send: closure clip: record] {
         }
 
         # if we're offline, or an ack is pending, do nothing
-        if (($state.heartbeat_interval == 0) or ($state.last_ack | is-empty)) {
+        if ($state.heartbeat_interval == 0) {
             return
         }
 
@@ -110,35 +109,8 @@ export def run [state: record ws_send: closure clip: record] {
             $state.authing = "authed"
         }
 
-        {op: 0, t: "GUILD_CREATE"} => {},
-        {op: 0, t: "MESSAGE_CREATE"} => {},
-
-        # pulse
-        {op: -1} => {
-            print "."
-            # if we're online, but not authed, attempt to auth
-            if (($state.heartbeat_interval != 0) and ($state.authing | is-empty)) {
-                if ($state.session_id | is-not-empty) {
-                    print "sending resume!"
-                    op resume $env.BOT_TOKEN $state.session_id $state.s | to json -r | xs ./ws put --topic ws.send
-                } else {
-                    print "sending identify!"
-                    op identify $env.BOT_TOKEN 33281 | to json -r | xs ./ws put --topic ws.send
-                }
-            } else {
-                # if we're offline, or an ack is pending, do nothing
-                if (($state.heartbeat_interval == 0) or ($state.last_ack | is-empty)) {
-                    return
-                }
-
-                let since = (scru128-since $clip.id $state.last_sent)
-                let interval =  (($state.heartbeat_interval / 1000) * 0.9)
-                if ($since > $interval) {
-                    print "sending heartbeat!"
-                    op heartbeat $state.s | to json -r | xs ./ws put --topic ws.send
-                }
-            }
-        }
+        # catch all for the remainder of dispatch topics (t)
+        {op: 0} => {}
 
         _ => {
             error make { msg: $"todo ($clip | table -e)" }

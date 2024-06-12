@@ -15,15 +15,22 @@ let path = "./state.nuon"
 let state = try { open $path } catch { {last_id: null, app: (discord heartbeat default-state)} }
 print ($state | table -e)
 
-let clip = xs cat $store --last-id=$state.last_id | if ($in | is-not-empty) {
-    first | insert data { |row| xs cas ./store $row.hash | from json }
-} else { {id: (scru128)} }
-
-print ($clip | table -e)
-
 let ws_send = {|| to json -r | xs append $store ws.send}
 
-discord heartbeat run $state.app $ws_send $clip | if ($in | is-not-empty) {
-    {last_id: $clip.id, app: $in} | save -f $path
-    print (open $path | table -e)
-}
+xs cat $store --last-id=$state.last_id --follow 5000 | each {|clip|
+    if ($clip.hash | is-empty) { $clip } else {
+        insert data {|row|
+            xs cas ./store $row.hash | from json
+        }}
+    } | each {|clip|
+        let state = try { open $path } catch { {last_id: null, app: (discord heartbeat default-state)} }
+        print ($state | table -e)
+        print ($clip | table -e)
+         discord heartbeat run $state.app $ws_send $clip | if ($in | is-not-empty) {
+             {last_id: $clip.id, app: $in} | save -f $path
+             print (open $path | table -e)
+         }
+     }
+
+
+
