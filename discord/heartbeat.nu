@@ -91,11 +91,15 @@ export def run [state: record ws_send: closure clip: record] {
         # identify
         {op: 2} => {
             $state.authing = "identify"
+            $state.last_ack = $clip.id
+            $state.last_sent = $clip.id
         }
 
         # resume
         {op: 6} => {
             $state.authing = "resume"
+            $state.last_ack = $clip.id
+            $state.last_sent = $clip.id
         }
 
         # dispatch
