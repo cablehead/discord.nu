@@ -74,17 +74,21 @@ export def run [state: record ws_send: closure clip: record] {
             $state.last_ack = $clip.id
         },
 
-        # reconnect
-        {op: 7} => {},
-
-        # invalid_session
-        {op: 9} => {
+        # resume
+        {op: 7} => {
             # if we get an invalid session while trying to resume, also clear
             # out the session
             if $state.authing == "resume" {
                 $state.resume_gateway_url = null
                 $state.session_id = null
             }
+            $state.authing = null
+        }
+
+        # invalid_session
+        {op: 9} => {
+            $state.resume_gateway_url = null
+            $state.session_id = null
             $state.authing = null
         }
 
