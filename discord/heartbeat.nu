@@ -106,6 +106,10 @@ export def run [state: record ws_send: closure clip: record] {
             $state.authing = "authed"
         }
 
+        {op: 0, t: "RESUMED"} => {
+            $state.authing = "authed"
+        }
+
         {op: 0, t: "GUILD_CREATE"} => {},
         {op: 0, t: "MESSAGE_CREATE"} => {},
 
