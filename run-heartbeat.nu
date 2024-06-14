@@ -17,12 +17,17 @@ print ($state | table -e)
 
 let ws_send = {|| to json -r | xs append $store ws.send}
 
-xs cat $store --last-id=$state.last_id --follow 5000 | each {|clip|
-    if ($clip.hash | is-empty) { $clip } else {
-        insert data {|row|
-            xs cas ./store $row.hash | from json
-        }}
-    } | each {|clip|
+xs cat $store --last-id=$state.last_id --follow 5000
+    | where { |clip|
+        ($clip.topic | str starts-with "ws.") or ($clip.topic in [ "stream.cross.threshold", "stream.cross.pulse" ])
+    }
+    | each { |clip|
+        if ($clip.hash | is-empty) { $clip } else {
+            insert data {|row|
+                xs cas ./store $row.hash | from json
+            }}
+    }
+    | each { |clip|
         let state = try { open $path } catch { {last_id: null, app: (discord heartbeat default-state)} }
         print ($state | table -e)
         print ($clip | table -e)
@@ -30,7 +35,7 @@ xs cat $store --last-id=$state.last_id --follow 5000 | each {|clip|
              {last_id: $clip.id, app: $in} | save -f $path
              print (open $path | table -e)
          }
-     }
+    }
 
 
 
