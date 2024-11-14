@@ -1,4 +1,3 @@
-
 ## discord.nu
 
-discord + nushell + a happy dance
+Nushell wrapper for the Discord REST API
