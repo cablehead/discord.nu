@@ -1,8 +1,70 @@
-def send-message [channel_id: string] {
+const API_BASE = "https://discord.com/api/v10"
+
+# Get Global Application Commands
+# https://discord.com/developers/docs/interactions/application-commands#get-global-application-commands
+
+export def "app command list" [application_id: string] {
+    let headers = {
+        Authorization: $"Bot ($env.BOT_TOKEN)",
+    }
+    let url = $"($API_BASE)/applications/($application_id)/commands"
+    http get --headers $headers $url
+}
+
+# Get Global Application Command
+# https://discord.com/developers/docs/interactions/application-commands#get-global-application-command
+
+# TODO
+
+# Create Global Application Command
+# https://discord.com/developers/docs/interactions/application-commands#create-global-application-command
+
+export def "app command create" [
+    application_id: string
+    name: string              # Name of command, 1-32 characters
+    description: string       # 1-100 character description for CHAT_INPUT commands
+] {
+    # options?	array of application command option	the parameters for the command, max of 25
+
+    let headers = {
+        Authorization: $"Bot ($env.BOT_TOKEN)",
+    }
+
+    let url = $"($API_BASE)/applications/($application_id)/commands"
+
+    http post --content-type application/json --headers $headers $url {
+        name: $name
+        type: 1
+        description: $description
+    }
+}
+
+# Create Interaction Response
+# https://discord.com/developers/docs/interactions/receiving-and-responding#create-interaction-response
+export def "interaction response" [
+    interaction_id: string
+    interaction_token: string
+    content: string
+    --type: int = 4
+] {
+    let url = $"($API_BASE)/interactions/($interaction_id)/($interaction_token)/callback"
+
+    http post --content-type application/json $url {
+        type: $type
+        data: {
+            content: $content
+        }
+    }
+}
+
+
+# Send Message
+
+export def send-message [channel_id: string] {
     let data = $in
     let headers = {
         Authorization: $"Bot ($env.BOT_TOKEN)",
     }
-    let url = $"https://discord.com/api/v9/channels/($channel_id)/messages"
+    let url = $"https://discord.com/api/v10/channels/($channel_id)/messages"
     http post --content-type application/json  --headers $headers $url $data
 }
