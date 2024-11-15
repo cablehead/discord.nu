@@ -16,6 +16,24 @@ export def "app command list" [application_id: string] {
 
 # TODO
 
+# Application Command Option Utilities
+# https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
+
+export def "app command option string" [
+    name: string
+    description: string
+    --required
+    --choices: list<string>
+] {
+    {
+        type: 3
+        name: $name
+        description: $description
+        required: $required
+        choices: ($choices | each { |x| {name: $x value: $x} })
+    }
+}
+
 # Create Global Application Command
 # https://discord.com/developers/docs/interactions/application-commands#create-global-application-command
 
@@ -23,9 +41,8 @@ export def "app command create" [
     application_id: string
     name: string              # Name of command, 1-32 characters
     description: string       # 1-100 character description for CHAT_INPUT commands
+    --options: list<record>   # array of application command option the parameters for the command, max of 25
 ] {
-    # options?	array of application command option	the parameters for the command, max of 25
-
     let headers = {
         Authorization: $"Bot ($env.BOT_TOKEN)",
     }
@@ -36,6 +53,7 @@ export def "app command create" [
         name: $name
         type: 1
         description: $description
+        options: $options
     }
 }
 
