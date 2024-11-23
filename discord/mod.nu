@@ -1,5 +1,16 @@
 const API_BASE = "https://discord.com/api/v10"
 
+# Get Current Application
+# https://discord.com/developers/docs/resources/application#get-current-application
+#
+export def "app get" [application_id?: string] {
+    let headers = {
+        Authorization: $"Bot ($env.BOT_TOKEN)",
+    }
+    let url = $"($API_BASE)/applications/@me"
+    http get --headers $headers $url
+}
+
 # Get Global Application Commands
 # https://discord.com/developers/docs/interactions/application-commands#get-global-application-commands
 
@@ -31,6 +42,19 @@ export def "app command option string" [
         description: $description
         required: $required
         choices: ($choices | each { |x| {name: $x value: $x} })
+    }
+}
+
+export def "app command option int" [
+    name: string
+    description: string
+    --required
+] {
+    {
+        type: 4
+        name: $name
+        description: $description
+        required: $required
     }
 }
 
@@ -85,4 +109,34 @@ export def send-message [channel_id: string] {
     }
     let url = $"https://discord.com/api/v10/channels/($channel_id)/messages"
     http post --content-type application/json  --headers $headers $url $data
+}
+
+# Start Thread without Message
+# https://discord.com/developers/docs/resources/channel#start-thread-without-message
+#
+export def "channel thread create" [
+    channel_id: string
+    name: string
+] {
+    let headers = {
+        Authorization: $"Bot ($env.BOT_TOKEN)",
+    }
+    let url = $"https://discord.com/api/v10/channels/($channel_id)/threads"
+    http post --content-type application/json  --headers $headers $url {
+        name: $name
+        type: 11
+    }
+}
+
+# Join Thread
+# https://discord.com/developers/docs/resources/channel#join-thread
+#
+export def "channel thread join" [
+    channel_id: string
+] {
+    let headers = {
+        Authorization: $"Bot ($env.BOT_TOKEN)",
+    }
+    let url = $"($API_BASE)/channels/($channel_id)/thread-members/@me"
+    http put --full --headers $headers $url ""
 }
