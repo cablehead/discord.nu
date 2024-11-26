@@ -2,7 +2,6 @@ const API_BASE = "https://discord.com/api/v10"
 
 # Get Current Application
 # https://discord.com/developers/docs/resources/application#get-current-application
-#
 export def "app get" [application_id?: string] {
     let headers = {
         Authorization: $"Bot ($env.BOT_TOKEN)",
@@ -13,7 +12,6 @@ export def "app get" [application_id?: string] {
 
 # Get Global Application Commands
 # https://discord.com/developers/docs/interactions/application-commands#get-global-application-commands
-
 export def "app command list" [application_id: string] {
     let headers = {
         Authorization: $"Bot ($env.BOT_TOKEN)",
@@ -29,7 +27,6 @@ export def "app command list" [application_id: string] {
 
 # Application Command Option Utilities
 # https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
-
 export def "app command option string" [
     name: string
     description: string
@@ -57,10 +54,10 @@ export def "app command option int" [
         required: $required
     }
 }
+# -- Application Command Option Utilities
 
 # Create Global Application Command
 # https://discord.com/developers/docs/interactions/application-commands#create-global-application-command
-
 export def "app command create" [
     application_id: string
     name: string              # Name of command, 1-32 characters
@@ -100,8 +97,8 @@ export def "interaction response" [
 }
 
 
-# Send Message
-
+# Create Message
+# https://discord.com/developers/docs/resources/message#create-message
 export def send-message [channel_id: string] {
     let data = $in
     let headers = {
@@ -111,17 +108,25 @@ export def send-message [channel_id: string] {
     http post --content-type application/json  --headers $headers $url $data
 }
 
-# Start Thread without Message
+# Start Thread
 # https://discord.com/developers/docs/resources/channel#start-thread-without-message
-#
+# TODO: thread types
 export def "channel thread create" [
     channel_id: string
     name: string
+    message_id?: string
 ] {
     let headers = {
         Authorization: $"Bot ($env.BOT_TOKEN)",
     }
-    let url = $"https://discord.com/api/v10/channels/($channel_id)/threads"
+
+    mut url = $"($API_BASE)/channels/($channel_id)"
+    if $message_id != null {
+        $url = $url + $"/messages/($message_id)"
+    }
+
+    $url = $url + "/threads"
+
     http post --content-type application/json  --headers $headers $url {
         name: $name
         type: 11
@@ -130,7 +135,6 @@ export def "channel thread create" [
 
 # Join Thread
 # https://discord.com/developers/docs/resources/channel#join-thread
-#
 export def "channel thread join" [
     channel_id: string
 ] {
