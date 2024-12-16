@@ -5,21 +5,21 @@ const API_BASE = "https://discord.com/api/v10"
 # Get Current Application
 # https://discord.com/developers/docs/resources/application#get-current-application
 export def "app get" [application_id?: string] {
-    let headers = {
-        Authorization: $"Bot ($env.BOT_TOKEN)",
-    }
-    let url = $"($API_BASE)/applications/@me"
-    http get --headers $headers $url
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
+  let url = $"($API_BASE)/applications/@me"
+  http get --headers $headers $url
 }
 
 # Get Global Application Commands
 # https://discord.com/developers/docs/interactions/application-commands#get-global-application-commands
 export def "app command list" [application_id: string] {
-    let headers = {
-        Authorization: $"Bot ($env.BOT_TOKEN)",
-    }
-    let url = $"($API_BASE)/applications/($application_id)/commands"
-    http get --headers $headers $url
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
+  let url = $"($API_BASE)/applications/($application_id)/commands"
+  http get --headers $headers $url
 }
 
 # Get Global Application Command
@@ -29,54 +29,54 @@ export def "app command list" [application_id: string] {
 # Application Command Option Utilities
 # https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
 export def "app command option string" [
-    name: string
-    description: string
-    --required
-    --choices: list<string>
+  name: string
+  description: string
+  --required
+  --choices: list<string>
 ] {
-    {
-        type: 3
-        name: $name
-        description: $description
-        required: $required
-        choices: ($choices | each { |x| {name: $x value: $x} })
-    }
+  {
+    type: 3
+    name: $name
+    description: $description
+    required: $required
+    choices: ($choices | each {|x| { name: $x value: $x }})
+  }
 }
 
 export def "app command option int" [
-    name: string
-    description: string
-    --required
+  name: string
+  description: string
+  --required
 ] {
-    {
-        type: 4
-        name: $name
-        description: $description
-        required: $required
-    }
+  {
+    type: 4
+    name: $name
+    description: $description
+    required: $required
+  }
 }
 # -- Application Command Option Utilities
 
 # Create Global Application Command
 # https://discord.com/developers/docs/interactions/application-commands#create-global-application-command
 export def "app command create" [
-    application_id: string
-    name: string              # Name of command, 1-32 characters
-    description: string       # 1-100 character description for CHAT_INPUT commands
-    --options: list<record>   # array of application command option the parameters for the command, max of 25
+  application_id: string
+  name: string # Name of command, 1-32 characters
+  description: string # 1-100 character description for CHAT_INPUT commands
+  --options: list<record> # array of application command option the parameters for the command, max of 25
 ] {
-    let headers = {
-        Authorization: $"Bot ($env.BOT_TOKEN)",
-    }
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
 
-    let url = $"($API_BASE)/applications/($application_id)/commands"
+  let url = $"($API_BASE)/applications/($application_id)/commands"
 
-    http post --content-type application/json --headers $headers $url {
-        name: $name
-        type: 1
-        description: $description
-        options: $options
-    }
+  http post --content-type application/json --headers $headers $url {
+    name: $name
+    type: 1
+    description: $description
+    options: $options
+  }
 }
 
 ### Interaction
@@ -84,19 +84,19 @@ export def "app command create" [
 # Create Interaction Response
 # https://discord.com/developers/docs/interactions/receiving-and-responding#create-interaction-response
 export def "interaction response" [
-    interaction_id: string
-    interaction_token: string
-    content: string
-    --type: int = 4
+  interaction_id: string
+  interaction_token: string
+  content: string
+  --type: int =4
 ] {
-    let url = $"($API_BASE)/interactions/($interaction_id)/($interaction_token)/callback"
+  let url = $"($API_BASE)/interactions/($interaction_id)/($interaction_token)/callback"
 
-    http post --content-type application/json $url {
-        type: $type
-        data: {
-            content: $content
-        }
+  http post --content-type application/json $url {
+    type: $type
+    data: {
+      content: $content
     }
+  }
 }
 
 ### Channel
@@ -104,73 +104,75 @@ export def "interaction response" [
 # Channel Message Create
 # https://discord.com/developers/docs/resources/message#create-message
 export def "channel message create" [channel_id: string] {
-    let data = $in
-    let headers = {
-        Authorization: $"Bot ($env.BOT_TOKEN)",
-    }
-    let url = $"https://discord.com/api/v10/channels/($channel_id)/messages"
+  let data = $in
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
+  let url = $"https://discord.com/api/v10/channels/($channel_id)/messages"
 
-    let res = (http post
-        --full
-        --allow-errors
-        --content-type application/json
-        --headers $headers
-        $url
-        $data)
+  let res = (
+    http post
+    --full
+    --allow-errors
+    --content-type application/json
+    --headers $headers
+    $url
+    $data
+  )
 
-    if $res.status >= 499 {
-        return (error make {msg: ($res | to json)})
-    }
+  if $res.status >= 499 {
+    return ( error make { msg: ($res | to json) })
+  }
 
-    $res
+  $res
 }
 
 # Channel Thread Create
 # https://discord.com/developers/docs/resources/channel#start-thread-without-message
 # TODO: thread types
 export def "channel thread create" [
-    channel_id: string
-    name: string
-    message_id?: string
+  channel_id: string
+  name: string
+  message_id?: string
 ] {
-    let headers = {
-        Authorization: $"Bot ($env.BOT_TOKEN)",
-    }
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
 
-    mut url = $"($API_BASE)/channels/($channel_id)"
-    if $message_id != null {
-        $url = $url + $"/messages/($message_id)"
-    }
+  mut url = $"($API_BASE)/channels/($channel_id)"
+  if $message_id != null {
+    $url = $url + $"/messages/($message_id)"
+  }
 
-    $url = $url + "/threads"
+  $url = $url + "/threads"
 
-    http post --content-type application/json  --headers $headers $url {
-        name: $name
-        type: 11
-    }
+  http post --content-type application/json --headers $headers $url {
+    name: $name
+    type: 11
+  }
 }
 
 # Channel Modify
 # https://discord.com/developers/docs/resources/channel#modify-channel
 export def "channel modify" [
-    channel_id: string
+  channel_id: string
 ]: record -> any {
-    let headers = {
-        Authorization: $"Bot ($env.BOT_TOKEN)",
-    }
-    let data = $in
-    let url = $"($API_BASE)/channels/($channel_id)"
-    http patch --content-type "application/json" --headers $headers $url $data
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
+  let data = $in
+  let url = $"($API_BASE)/channels/($channel_id)"
+  http patch --content-type "application/json" --headers $headers $url $data
 }
 
 # Channel Thread Join
 # https://discord.com/developers/docs/resources/channel#join-thread
 export def "channel thread join" [
-    channel_id: string
+  channel_id: string
 ] {
-    let headers = {
-        Authorization: $"Bot ($env.BOT_TOKEN)",
-    }
-    let url = $"($API_BASE)/channels/($channel_id)/thread-members/@me"
-    http put --full --headers $headers $url ""
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
+  let url = $"($API_BASE)/channels/($channel_id)/thread-members/@me"
+  http put --full --headers $headers $url ""
 }
