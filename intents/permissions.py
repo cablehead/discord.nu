@@ -53,31 +53,67 @@ PERMISSIONS = {
 }
 
 def get_enabled_permissions(permission_value):
+    """Convert a permission integer to a list of enabled permission names."""
     enabled_permissions = []
     for permission_name, permission_flag in PERMISSIONS.items():
         if permission_value & permission_flag:
             enabled_permissions.append(permission_name)
     return enabled_permissions
 
+def get_permission_value(permission_names):
+    """Convert a list of permission names to their combined integer value."""
+    permission_value = 0
+    invalid_permissions = []
+
+    for name in permission_names:
+        name = name.strip().upper()
+        if name in PERMISSIONS:
+            permission_value |= PERMISSIONS[name]
+        else:
+            invalid_permissions.append(name)
+
+    return permission_value, invalid_permissions
+
+def print_usage():
+    print("Usage:")
+    print("  To get permissions from integer:")
+    print("    python permissions.py -i <permission_value>")
+    print("  To get integer from permissions:")
+    print("    python permissions.py -p <permission1> <permission2> ...")
+    print("\nAvailable permissions:")
+    for perm in sorted(PERMISSIONS.keys()):
+        print(f"  {perm}")
+
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python permissions.py <permission_value>")
+    if len(sys.argv) < 3:
+        print_usage()
         sys.exit(1)
 
-    try:
-        permission_value = int(sys.argv[1])
-    except ValueError:
-        print("Error: Please provide a valid integer for the permission value.")
-        sys.exit(1)
+    mode = sys.argv[1]
 
-    enabled_permissions = get_enabled_permissions(permission_value)
+    if mode == "-i":
+        try:
+            permission_value = int(sys.argv[2])
+            enabled_permissions = get_enabled_permissions(permission_value)
+            print(" ".join(enabled_permissions))
+        except ValueError:
+            print("Error: Please provide a valid integer for the permission value.")
+            sys.exit(1)
 
-    if enabled_permissions:
-        print("Enabled permissions:")
-        for permission in enabled_permissions:
-            print(f"- {permission}")
+    elif mode == "-p":
+        permission_names = sys.argv[2:]
+        permission_value, invalid_permissions = get_permission_value(permission_names)
+
+        print(f"\nPermission value: {permission_value}")
+        if invalid_permissions:
+            print("\nWarning: The following permissions were not recognized:")
+            for invalid in invalid_permissions:
+                print(f"- {invalid}")
+
     else:
-        print("No permissions enabled.")
+        print("Error: Invalid mode. Use -i for integer to permissions or -p for permissions to integer.")
+        print_usage()
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
