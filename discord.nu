@@ -1,5 +1,7 @@
 const API_BASE = "https://discord.com/api/v10"
 
+### App
+
 # Get Current Application
 # https://discord.com/developers/docs/resources/application#get-current-application
 export def "app get" [application_id?: string] {
@@ -22,7 +24,6 @@ export def "app command list" [application_id: string] {
 
 # Get Global Application Command
 # https://discord.com/developers/docs/interactions/application-commands#get-global-application-command
-
 # TODO
 
 # Application Command Option Utilities
@@ -78,6 +79,8 @@ export def "app command create" [
     }
 }
 
+### Interaction
+
 # Create Interaction Response
 # https://discord.com/developers/docs/interactions/receiving-and-responding#create-interaction-response
 export def "interaction response" [
@@ -96,10 +99,11 @@ export def "interaction response" [
     }
 }
 
+### Channel
 
-# Create Message
+# Channel Message Create
 # https://discord.com/developers/docs/resources/message#create-message
-export def send-message [channel_id: string] {
+export def "channel message create" [channel_id: string] {
     let data = $in
     let headers = {
         Authorization: $"Bot ($env.BOT_TOKEN)",
@@ -121,7 +125,7 @@ export def send-message [channel_id: string] {
     $res
 }
 
-# Start Thread
+# Channel Thread Create
 # https://discord.com/developers/docs/resources/channel#start-thread-without-message
 # TODO: thread types
 export def "channel thread create" [
@@ -146,7 +150,7 @@ export def "channel thread create" [
     }
 }
 
-# Modify Channel
+# Channel Modify
 # https://discord.com/developers/docs/resources/channel#modify-channel
 export def "channel modify" [
     channel_id: string
@@ -159,7 +163,7 @@ export def "channel modify" [
     http patch --content-type "application/json" --headers $headers $url $data
 }
 
-# Join Thread
+# Channel Thread Join
 # https://discord.com/developers/docs/resources/channel#join-thread
 export def "channel thread join" [
     channel_id: string
