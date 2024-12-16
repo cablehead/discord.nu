@@ -105,7 +105,20 @@ export def send-message [channel_id: string] {
         Authorization: $"Bot ($env.BOT_TOKEN)",
     }
     let url = $"https://discord.com/api/v10/channels/($channel_id)/messages"
-    http post --content-type application/json  --headers $headers $url $data
+
+    let res = (http post
+        --full
+        --allow-errors
+        --content-type application/json
+        --headers $headers
+        $url
+        $data)
+
+    if $res.status >= 499 {
+        return (error make {msg: ($res | to json)})
+    }
+
+    $res
 }
 
 # Start Thread
@@ -131,6 +144,19 @@ export def "channel thread create" [
         name: $name
         type: 11
     }
+}
+
+# Modify Channel
+# https://discord.com/developers/docs/resources/channel#modify-channel
+export def "channel modify" [
+    channel_id: string
+]: record -> any {
+    let headers = {
+        Authorization: $"Bot ($env.BOT_TOKEN)",
+    }
+    let data = $in
+    let url = $"($API_BASE)/channels/($channel_id)"
+    http patch --content-type "application/json" --headers $headers $url $data
 }
 
 # Join Thread
