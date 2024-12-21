@@ -176,3 +176,16 @@ export def "channel thread join" [
   let url = $"($API_BASE)/channels/($channel_id)/thread-members/@me"
   http put --full --headers $headers $url ""
 }
+
+### Guild
+
+# List Guild Channels
+# https://discord.com/developers/docs/resources/guild#get-guild-channels
+export def "guild channel list" [guild_id: string] {
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
+  let url = $"($API_BASE)/guilds/($guild_id)/channels"
+
+  http get --headers $headers $url
+}
