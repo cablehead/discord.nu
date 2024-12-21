@@ -7,7 +7,7 @@ Nushell wrapper for the Discord REST API
 #### App
 
 - `discord app command create` _-- [create global application command](https://discord.com/developers/docs/interactions/application-commands#create-global-application-command)_
-  - helpers for creating [command options](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type):
+  - helpers for defining [command options](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type):
     - `discord app command option int`
     - `discord app command option string`
 - `discord app command list` _-- [get global application commands](https://discord.com/developers/docs/interactions/application-commands#get-global-application-commands)_
