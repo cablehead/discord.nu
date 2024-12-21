@@ -26,7 +26,7 @@ export def "app command list" [application_id: string] {
 # https://discord.com/developers/docs/interactions/application-commands#get-global-application-command
 # TODO
 
-# Application Command Option Utilities
+# util-for: discord app command create::options
 # https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
 export def "app command option string" [
   name: string
@@ -43,6 +43,8 @@ export def "app command option string" [
   }
 }
 
+# util-for: discord app command create::options
+# https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
 export def "app command option int" [
   name: string
   description: string
@@ -129,7 +131,6 @@ export def "channel message create" [channel_id: string] {
 
 # Channel Thread Create
 # https://discord.com/developers/docs/resources/channel#start-thread-without-message
-# TODO: thread types
 export def "channel thread create" [
   channel_id: string
   name: string
