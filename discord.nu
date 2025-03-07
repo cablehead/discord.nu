@@ -191,11 +191,11 @@ export def "channel message list" [
     Authorization: $"Bot ($env.BOT_TOKEN)"
   }
 
-  mut params = []
-  if $around != null { $params = ($params | append ['around' $around]) }
-  if $before != null { $params = ($params | append ['before' $before]) }
-  if $after != null { $params = ($params | append ['after' $after]) }
-  $params = ($params | append ['limit' $limit])
+  mut params = {}
+  if $around != null { $params = ($params | merge {around: $around}) }
+  if $before != null { $params = ($params | merge {before: $before}) }
+  if $after != null { $params = ($params | merge {after: $after}) }
+  $params = ($params | merge {limit: $limit})
 
   let query_params = ($params | url build-query)
   let url = $"($API_BASE)/channels/($channel_id)/messages?($query_params)"
