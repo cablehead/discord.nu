@@ -39,7 +39,7 @@ export def "app command option string" [
     name: $name
     description: $description
     required: $required
-    choices: ($choices | each {|x| { name: $x value: $x }})
+    choices: ($choices | each {|x| {name: $x value: $x} })
   }
 }
 
@@ -89,7 +89,7 @@ export def "interaction response" [
   interaction_id: string
   interaction_token: string
   content: string
-  --type: int =4
+  --type: int = 4
 ] {
   let url = $"($API_BASE)/interactions/($interaction_id)/($interaction_token)/callback"
 
@@ -123,7 +123,7 @@ export def "channel message create" [channel_id: string] {
   )
 
   if $res.status >= 499 {
-    return ( error make { msg: ($res | to json) })
+    return ( error make {msg: ($res | to json)})
   }
 
   $res
@@ -176,6 +176,31 @@ export def "channel thread join" [
   }
   let url = $"($API_BASE)/channels/($channel_id)/thread-members/@me"
   http put --full --headers $headers $url ""
+}
+
+# Get Channel Messages
+# https://discord.com/developers/docs/resources/channel#get-channel-messages
+export def "channel message list" [
+  channel_id: string
+  --around: string # Get messages around this message ID
+  --before: string # Get messages before this message ID
+  --after: string # Get messages after this message ID
+  --limit: int = 50 # Max number of messages to return (1-100)
+] {
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
+
+  mut params = []
+  if $around != null { $params = ($params | append ['around' $around]) }
+  if $before != null { $params = ($params | append ['before' $before]) }
+  if $after != null { $params = ($params | append ['after' $after]) }
+  $params = ($params | append ['limit' $limit])
+
+  let query_params = ($params | url build-query)
+  let url = $"($API_BASE)/channels/($channel_id)/messages?($query_params)"
+
+  http get --headers $headers $url
 }
 
 ### Guild
