@@ -179,7 +179,7 @@ export def "channel thread join" [
 }
 
 # Get Channel Messages
-# https://discord.com/developers/docs/resources/channel#get-channel-messages
+# https://discord.com/developers/docs/resources/message#get-channel-messages
 export def "channel message list" [
   channel_id: string
   --around: string # Get messages around this message ID
