@@ -203,6 +203,20 @@ export def "channel message list" [
   http get --headers $headers $url
 }
 
+# Channel Typing Trigger
+# https://discord.com/developers/docs/resources/channel#trigger-typing-indicator
+export def "channel typing trigger" [
+  channel_id: string
+] {
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
+  let url = $"($API_BASE)/channels/($channel_id)/typing"
+
+  # The endpoint expects an empty body and returns 204 No Content on success
+  http post --full --headers $headers $url ""
+}
+
 ### Guild
 
 # List Guild Channels

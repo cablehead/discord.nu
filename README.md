@@ -20,6 +20,7 @@ Nushell wrapper for the Discord REST API
 - `discord channel modify` _-- [channel modify](https://discord.com/developers/docs/resources/channel#modify-channel)_
 - `discord channel thread create` _-- [channel thread create](https://discord.com/developers/docs/resources/channel#start-thread-without-message)_
 - `discord channel thread join` _-- [channel thread join](https://discord.com/developers/docs/resources/channel#join-thread)_
+- `discord channel typing trigger` _-- [trigger typing indicator](https://discord.com/developers/docs/resources/channel#trigger-typing-indicator)_
 
 #### Guild
 
