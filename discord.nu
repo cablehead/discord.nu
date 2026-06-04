@@ -229,3 +229,16 @@ export def "guild channel list" [guild_id: string] {
 
   http get --headers $headers $url
 }
+
+### User
+
+# Get Current User
+# https://discord.com/developers/docs/resources/user#get-current-user
+export def "user get" [] {
+  let headers = {
+    Authorization: $"Bot ($env.BOT_TOKEN)"
+  }
+  let url = $"($API_BASE)/users/@me"
+
+  http get --headers $headers $url
+}
